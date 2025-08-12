@@ -40,5 +40,11 @@ export async function GET(req: NextRequest) {
     ent(`MEMBER('RAF-R-${idx}','BEAM',(${W},${y},${H}),(${W/2},${y},${ridge}))`)
   })
   out += 'ENDSEC;\nEND-ISO-10303-21;\n'
+  try {
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${encodeURIComponent(projectId)}/logs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'info', source: 'api/interop/cis2', message: 'CIS/2 export generated' })
+    }).catch(()=>{})
+  } catch {}
   return new Response(out, { headers: { 'Content-Type': 'text/plain', 'Content-Disposition': 'attachment; filename="model.stp"' } })
 }

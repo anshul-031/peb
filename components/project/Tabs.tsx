@@ -13,6 +13,7 @@ const tabs = [
   { href: (id: string) => `/app/projects/${id}/bom`, label: 'BOM' },
   { href: (id: string) => `/app/projects/${id}/drawings`, label: 'Drawings' },
   { href: (id: string) => `/app/projects/${id}/interop`, label: 'Interoperability' },
+  { href: (id: string) => `/app/projects/${id}/logs`, label: 'Logs' },
 ]
 
 export default function ProjectTabs({ id }: { id: string }) {

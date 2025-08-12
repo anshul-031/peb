@@ -15,7 +15,7 @@ type Props = {
   ucByFrame?: number[] // utilization per frame index (0..bays-1)
 }
 
-function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', selected = false, clippingPlanes }: { span?: number; height?: number; slope?: number; z?: number; color?: string; selected?: boolean; clippingPlanes?: THREE.Plane[] }) {
+function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', selected = false, clippingPlanes, onClick }: { span?: number; height?: number; slope?: number; z?: number; color?: string; selected?: boolean; clippingPlanes?: THREE.Plane[]; onClick?: () => void }) {
   // Very simplified: two columns and a straight rafter approximating roof slope
   const half = span / 2
   const ridgeY = height + span / slope / 2 // rough ridge elevation from slope
@@ -27,7 +27,7 @@ function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', se
     ]
   }, [half, height, ridgeY, span, z])
   return (
-    <group scale={selected ? 1.03 : 1}>
+    <group scale={selected ? 1.03 : 1} onClick={onClick}>
       {nodes.map((n, i) => (
         <mesh key={i} position={[n.position[0], (n.position[1] || 0) + (i < 2 ? n.size[1] / 2 : 0), n.position[2]]}>
           <boxGeometry args={n.size as any} />
@@ -108,6 +108,12 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
   const updatePlane = useCallback((value: number) => {
     const url = new URL(window.location.href)
     url.searchParams.set('cutz', String(value))
+    const next = url.pathname + url.search
+    router.replace(next as any)
+  }, [router])
+  const selectFrame = useCallback((index: number) => {
+    const url = new URL(window.location.href)
+    url.searchParams.set('sel', `frame:${index}`)
     const next = url.pathname + url.search
     router.replace(next as any)
   }, [router])
@@ -298,7 +304,7 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
           if (cutzParam == null && cut && selIndex >= 0 && i > selIndex) return null
           const uc = ucByFrame && ucByFrame[i] != null ? ucByFrame[i] : 0.6
           const color = ucToColor(uc)
-          return <Frame key={i} span={width} height={eaveHeight} slope={roofSlope} z={z} color={color} selected={i===selIndex} clippingPlanes={clippingPlanes} />
+          return <Frame key={i} span={width} height={eaveHeight} slope={roofSlope} z={z} color={color} selected={i===selIndex} clippingPlanes={clippingPlanes} onClick={() => selectFrame(i)} />
         })}
         {/* section plane visuals */}
         {cutzParam != null && (

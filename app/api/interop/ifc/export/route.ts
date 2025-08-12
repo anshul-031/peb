@@ -46,5 +46,11 @@ export async function GET(req: NextRequest) {
     elements,
   }
   const content = JSON.stringify(ifcJson, null, 2) + '\n'
+  try {
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${encodeURIComponent(projectId)}/logs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'info', source: 'api/interop/ifc', message: 'IFC export generated' })
+    }).catch(()=>{})
+  } catch {}
   return new Response(content, { headers: { 'Content-Type': 'application/json', 'Content-Disposition': 'attachment; filename="model.ifc.json"' } })
 }

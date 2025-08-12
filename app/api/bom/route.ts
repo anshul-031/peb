@@ -88,5 +88,11 @@ export async function GET(req: NextRequest) {
     { qty: 0, len: 0, kg: 0 }
   )
   const csv = [headers, ...rows, ['Totals', '', totals.qty, '', totals.len, '', totals.kg]].map(r => r.join(',')).join('\n')
+  try {
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${encodeURIComponent(projectId)}/logs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'info', source: 'api/bom', message: 'BOM CSV generated', meta: { totals } })
+    }).catch(()=>{})
+  } catch {}
   return new Response(csv, { headers: { 'Content-Type': 'text/csv', 'Content-Disposition': 'attachment; filename="bom.csv"' } })
 }

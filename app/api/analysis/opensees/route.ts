@@ -33,7 +33,15 @@ export async function POST(req: NextRequest) {
   if (!redisUrl || forceLocal) {
     // Local fallback: persist a synthetic modal response
     const now = Date.now()
-    await prisma.project.update({ where: { id: projectId }, data: { analysisResults: { ...(body?.model ? { model: body.model } : {}), status: 'opensees-local', at: now } as any } })
+    const updated = { ...(body?.model ? { model: body.model } : {}), status: 'opensees-local', at: now } as any
+    const user = await prisma.user.findUnique({ where: { email: session.user.email! }, select: { id: true } })
+    await prisma.$transaction(async (tx) => {
+      await tx.project.update({ where: { id: projectId }, data: { analysisResults: updated } })
+      const agg = await tx.projectVersion.aggregate({ where: { projectId }, _max: { versionNumber: true } })
+      const nextVersion = (agg._max.versionNumber ?? 0) + 1
+      const current = await tx.project.findUnique({ where: { id: projectId }, select: { buildingData: true } })
+      await tx.projectVersion.create({ data: { projectId, versionNumber: nextVersion, buildingData: (current?.buildingData as any) ?? null, analysisResults: updated as any, createdByUserId: user?.id ?? null } })
+    })
     return NextResponse.json({ jobId: `local-opensees-${now}`, immediate: true })
   }
   const { Queue } = await import('bullmq')

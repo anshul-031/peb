@@ -109,5 +109,11 @@ export async function GET(req: NextRequest) {
   // End section
   push('0'); push('ENDSEC'); push('0'); push('EOF')
   const dxf = s.join('\n') + '\n'
+  try {
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${encodeURIComponent(projectId)}/logs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'info', source: 'api/drawings/dxf', message: 'DXF anchor plan generated' })
+    }).catch(()=>{})
+  } catch {}
   return new NextResponse(dxf, { headers: { 'Content-Type': 'application/dxf', 'Content-Disposition': `attachment; filename="${(project.projectName||'anchor-plan').replace(/[^a-z0-9-_]+/gi,'_')}.dxf"` } })
 }

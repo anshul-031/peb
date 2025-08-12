@@ -8,6 +8,8 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
+  console.log('[FOUND][SAVE] project', params.id, 'keys', Object.keys(body || {}))
+  const user = await prisma.user.findUnique({ where: { email: session.user.email }, select: { id: true } })
   const proj = await prisma.project.findFirst({
     where: {
       id: params.id,
@@ -20,6 +22,27 @@ export async function PUT(req: NextRequest, { params }: { params: { id: string }
   })
   if (!proj) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
-  await prisma.project.update({ where: { id: params.id }, data: { foundationDesigns: body } })
+  await prisma.$transaction(async (tx) => {
+    await tx.project.update({ where: { id: params.id }, data: { foundationDesigns: body } })
+    const agg = await tx.projectVersion.aggregate({ where: { projectId: params.id }, _max: { versionNumber: true } })
+    const nextVersion = (agg._max.versionNumber ?? 0) + 1
+    const current = await tx.project.findUnique({ where: { id: params.id }, select: { buildingData: true, analysisResults: true } })
+    await tx.projectVersion.create({
+      data: {
+        projectId: params.id,
+        versionNumber: nextVersion,
+        buildingData: current?.buildingData as any,
+        analysisResults: current?.analysisResults as any,
+        createdByUserId: user?.id ?? null,
+        notes: 'Foundations updated',
+      },
+    })
+  })
+  try {
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${params.id}/logs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'info', source: 'api/foundation', message: 'Foundations updated' })
+    }).catch(()=>{})
+  } catch {}
   return NextResponse.json({ ok: true })
 }

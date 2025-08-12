@@ -15,27 +15,34 @@ async function createProject(formData: FormData) {
   const name = String(formData.get('name') || '')
   const buildingType = (formData.get('buildingType') as string) || 'PEB'
   const clientName = String(formData.get('clientName') || '')
+  const designerName = String(formData.get('designerName') || '')
   const designCode = String(formData.get('designCode') || 'AISC 360-16')
   const unitSystem = String(formData.get('unitSystem') || 'Metric')
   const location = String(formData.get('location') || '')
   if (!name) return
   const owner = await prisma.user.upsert({ where: { email: session.user.email! }, update: {}, create: { email: session.user.email!, name: session.user.name || null } })
   await prisma.project.create({
-    data: { projectName: name, clientName, location, ownerId: owner.id, designCode, unitSystem, buildingType: buildingType as any },
+    data: { projectName: name, clientName, designerName, location, ownerId: owner.id, designCode, unitSystem, buildingType: buildingType as any },
   })
   revalidatePath('/app/projects')
 }
 
 async function duplicateProject(id: string) {
   'use server'
-  const p = await prisma.project.findUnique({ where: { id } })
+  const p = await prisma.project.findUnique({ where: { id }, include: { owner: true, collaborators: { include: { user: true } } } })
   if (!p) return
+  const session = await getServerSession(authOptions)
+  const email = session?.user?.email || ''
+  const canAccess = p.owner?.email === email || (p.collaborators || []).some(c => c.user.email === email)
+  if (!canAccess) return
   const copy = await prisma.project.create({
     data: {
       ownerId: p.ownerId,
       projectName: `${p.projectName} (Copy)`,
       designCode: p.designCode,
       unitSystem: p.unitSystem,
+  clientName: p.clientName,
+  designerName: p.designerName,
   buildingData: p.buildingData as any,
   loadData: p.loadData as any,
   analysisResults: p.analysisResults as any,
@@ -136,6 +143,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: { 
           <form action={createProject} className="mt-6 grid grid-cols-1 gap-2 sm:grid-cols-6">
             <input name="name" placeholder="New project name" className="rounded border px-3 py-2" />
             <input name="clientName" placeholder="Client" className="rounded border px-3 py-2" />
+            <input name="designerName" placeholder="Designer" className="rounded border px-3 py-2" />
             <input name="location" placeholder="Location" className="rounded border px-3 py-2" />
             <select name="buildingType" className="rounded border px-3 py-2">
               <option value="PEB">PEB</option>

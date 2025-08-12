@@ -126,5 +126,12 @@ export async function GET(req: NextRequest) {
     </Document>
   )
   const nodeBuffer = (await pdf(doc).toBuffer()) as unknown as Uint8Array
+  // Append project log (fire-and-forget)
+  try {
+    fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${encodeURIComponent(projectId)}/logs`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ level: 'info', source: 'api/reports/pdf', message: 'Report PDF generated' })
+    }).catch(()=>{})
+  } catch {}
   return new Response(nodeBuffer as any, { headers: { 'Content-Type': 'application/pdf', 'Content-Disposition': 'attachment; filename="report.pdf"' } })
 }
