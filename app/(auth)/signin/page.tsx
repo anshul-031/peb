@@ -21,7 +21,9 @@ export default function SignInPage() {
     e.preventDefault()
     setError(null)
     setLoading(true)
-    const res = await signIn('credentials', { redirect: false, email, password, callbackUrl })
+  console.log('[UI][SIGNIN] submit', { email, callbackUrl })
+  const res = await signIn('credentials', { redirect: false, email, password, callbackUrl })
+  console.log('[UI][SIGNIN] result', res)
     setLoading(false)
     if (res?.error) setError('Invalid email or password')
     else window.location.href = callbackUrl
@@ -31,8 +33,10 @@ export default function SignInPage() {
     setError(null)
     setLoading(true)
     try {
-      const seeded = await fetch('/api/dev/seed', { method: 'POST' }).then(r => r.json())
-      const res = await signIn('credentials', { redirect: false, email: seeded.email, password: seeded.password, callbackUrl })
+  const seeded = await fetch('/api/dev/seed', { method: 'POST' }).then(r => r.json())
+  console.log('[UI][DEMO] seeded', seeded)
+  const res = await signIn('credentials', { redirect: false, email: seeded.email, password: seeded.password, callbackUrl })
+  console.log('[UI][DEMO] signin result', res)
       if (res?.error) setError('Demo sign-in failed')
       else window.location.href = callbackUrl
     } catch {

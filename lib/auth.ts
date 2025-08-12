@@ -27,6 +27,7 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async redirect({ url, baseUrl }) {
+      console.log('[AUTH][REDIRECT]', { url, baseUrl })
       try {
         const to = new URL(url, baseUrl)
         // Only allow same-origin redirects; default to projects hub
@@ -36,12 +37,14 @@ export const authOptions: NextAuthOptions = {
     },
     async jwt({ token, user }) {
       if (user) token.id = (user as any).id
+      console.log('[AUTH][JWT]', { hasUser: !!user, tokenHasId: !!(token as any).id })
       return token
     },
     async session({ session, token }) {
       if (session?.user && token?.id) {
         ;(session.user as any).id = token.id as string
       }
+      console.log('[AUTH][SESSION]', { hasUser: !!session?.user, userId: (session?.user as any)?.id })
       return session
     },
   },
