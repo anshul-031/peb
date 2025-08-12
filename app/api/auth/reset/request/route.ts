@@ -11,5 +11,6 @@ export async function POST(req: NextRequest) {
   const expiry = new Date(Date.now() + 1000 * 60 * 30)
   await prisma.user.update({ where: { id: user.id }, data: { resetToken: token, resetTokenExpiry: expiry } })
   // In production, email this link to the user
-  return NextResponse.json({ ok: true, resetUrl: `/auth/reset/${token}` })
+  // Return app route for resetting password
+  return NextResponse.json({ ok: true, resetUrl: `/reset/${token}` })
 }

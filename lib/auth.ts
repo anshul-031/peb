@@ -22,7 +22,18 @@ export const authOptions: NextAuthOptions = {
     })
   ],
   session: { strategy: 'jwt' },
+  pages: {
+    signIn: '/signin',
+  },
   callbacks: {
+    async redirect({ url, baseUrl }) {
+      try {
+        const to = new URL(url, baseUrl)
+        // Only allow same-origin redirects; default to projects hub
+        if (to.origin === baseUrl) return to.toString()
+      } catch {}
+      return `${baseUrl}/app/projects`
+    },
     async jwt({ token, user }) {
       if (user) token.id = (user as any).id
       return token
