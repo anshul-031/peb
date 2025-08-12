@@ -27,6 +27,21 @@ export default function SignInPage() {
     else window.location.href = callbackUrl
   }
 
+  async function demoLogin() {
+    setError(null)
+    setLoading(true)
+    try {
+      const seeded = await fetch('/api/dev/seed', { method: 'POST' }).then(r => r.json())
+      const res = await signIn('credentials', { redirect: false, email: seeded.email, password: seeded.password, callbackUrl })
+      if (res?.error) setError('Demo sign-in failed')
+      else window.location.href = callbackUrl
+    } catch {
+      setError('Demo sign-in failed')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <main className="mx-auto flex min-h-[80vh] max-w-md flex-col justify-center px-6 py-12">
       <div className="rounded-xl border bg-white/80 p-8 shadow-sm backdrop-blur">
@@ -45,6 +60,7 @@ export default function SignInPage() {
           {successMsg ? <div className="rounded-md bg-green-50 p-2 text-sm text-green-700">{successMsg}</div> : null}
           {error && <div className="rounded-md bg-red-50 p-2 text-sm text-red-600">{error}</div>}
           <button disabled={loading} className="w-full rounded-md bg-zinc-900 px-4 py-2 text-white shadow hover:bg-zinc-800 disabled:opacity-60">{loading ? 'Signing in…' : 'Sign in'}</button>
+          <button type="button" onClick={demoLogin} disabled={loading} className="w-full rounded-md border px-4 py-2 text-sm hover:border-indigo-300">Explore with demo data</button>
           <div className="flex justify-between text-sm text-zinc-600">
             <a className="underline" href="/signup">Create account</a>
             <a className="underline" href="/reset/request">Forgot password?</a>

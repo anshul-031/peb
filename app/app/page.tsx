@@ -16,14 +16,14 @@ export default function AppHome() {
       <h1 className="text-2xl font-semibold">App Hub</h1>
       <p className="mt-2 text-sm text-zinc-600">Pick a module to get started. Inside a project, these appear as tabs.</p>
       <div className="mt-6">
-        <Link href="/app/projects" className="rounded-md bg-zinc-900 px-3 py-2 text-sm text-white">Open Projects</Link>
+        <Link href="/app/projects" className="rounded-md bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-3 py-2 text-sm text-white shadow">Open Projects</Link>
       </div>
       <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        {cards.map((c) => (
-          <Link key={c.title} href={c.href as any} className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow">
+        {cards.map((c, i) => (
+          <Link key={c.title} href={c.href as any} className="rounded-xl border bg-white p-5 shadow-sm transition hover:shadow hover:border-indigo-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-semibold">{c.title}</h3>
-              <span className="text-zinc-400">→</span>
+              <h3 className="text-base font-semibold"><span className="mr-2 inline-block h-2 w-2 rounded-full" style={{background:['#6366f1','#10b981','#f59e0b','#ef4444','#8b5cf6','#06b6d4','#84cc16','#f472b6'][i%8]}} />{c.title}</h3>
+              <span className="text-zinc-400 group-hover:text-indigo-600">→</span>
             </div>
             <p className="mt-2 text-sm text-zinc-600">{c.desc}</p>
           </Link>
