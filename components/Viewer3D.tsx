@@ -1,6 +1,7 @@
 "use client"
 import { Canvas, useThree } from '@react-three/fiber'
 import { OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
+import * as THREE from 'three'
 import { useCallback, useEffect, useRef } from 'react'
 import { useMemo, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -14,7 +15,7 @@ type Props = {
   ucByFrame?: number[] // utilization per frame index (0..bays-1)
 }
 
-function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', selected = false }: { span?: number; height?: number; slope?: number; z?: number; color?: string; selected?: boolean }) {
+function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', selected = false, clippingPlanes }: { span?: number; height?: number; slope?: number; z?: number; color?: string; selected?: boolean; clippingPlanes?: THREE.Plane[] }) {
   // Very simplified: two columns and a straight rafter approximating roof slope
   const half = span / 2
   const ridgeY = height + span / slope / 2 // rough ridge elevation from slope
@@ -30,7 +31,7 @@ function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', se
       {nodes.map((n, i) => (
         <mesh key={i} position={[n.position[0], (n.position[1] || 0) + (i < 2 ? n.size[1] / 2 : 0), n.position[2]]}>
           <boxGeometry args={n.size as any} />
-          <meshStandardMaterial color={selected ? '#111827' : color} />
+          <meshStandardMaterial color={selected ? '#111827' : color} clippingPlanes={clippingPlanes} clipShadows />
         </mesh>
       ))}
     </group>
@@ -61,7 +62,7 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
   const [measure, setMeasure] = useState<{ a?: [number, number, number]; b?: [number, number, number] }>({})
   const [measureMode, setMeasureMode] = useState(false)
   const [hoverSnap, setHoverSnap] = useState<[number, number, number] | undefined>(undefined)
-  const [snapMode, setSnapMode] = useState<'end'|'none'>('end')
+  const [snapMode, setSnapMode] = useState<'end'|'mid'|'none'>('end')
   const controls = useRef<any>(null)
   const focusSelected = useCallback(() => {
     if (selIndex < 0 || !controls.current) return
@@ -136,6 +137,13 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
     const next = url.pathname + url.search
     router.replace(next as any)
   }, [router])
+  const clippingPlanes = useMemo(() => {
+    const planes: THREE.Plane[] = []
+    if (cutxParam != null) planes.push(new THREE.Plane(new THREE.Vector3(1,0,0), -(cutx ?? 0)))
+    if (cutyParam != null) planes.push(new THREE.Plane(new THREE.Vector3(0,1,0), -(cuty ?? 0)))
+    if (cutzParam != null) planes.push(new THREE.Plane(new THREE.Vector3(0,0,1), -(cutz ?? 0)))
+    return planes
+  }, [cutxParam, cutx, cutyParam, cuty, cutzParam, cutz])
   // Keyboard shortcuts
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -146,7 +154,7 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
       else if (k === 'c') { e.preventDefault(); toggleCut() }
       else if (k === 'p') { e.preventDefault(); togglePlane() }
   else if (k === 'r') { e.preventDefault(); location.reload() }
-  else if (k === 's') { e.preventDefault(); setSnapMode(m => m === 'end' ? 'none' : 'end') }
+  else if (k === 's') { e.preventDefault(); setSnapMode(m => m === 'end' ? 'mid' : m === 'mid' ? 'none' : 'end') }
       else if (k === '1') { e.preventDefault(); setView('top') }
       else if (k === '2') { e.preventDefault(); setView('front') }
       else if (k === '3') { e.preventDefault(); setView('side') }
@@ -166,7 +174,7 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
         <button onClick={togglePlaneY} className={`rounded px-2 py-1 text-xs shadow ${cutyParam != null ? 'bg-blue-600 text-white' : 'bg-white/90'}`}>Plane Y</button>
   <button onClick={focusSelected} className="rounded bg-white/90 px-2 py-1 text-xs shadow">Focus</button>
   <button onClick={() => { setMeasureMode(m => !m); setMeasure({}) }} className={`rounded px-2 py-1 text-xs shadow ${measureMode ? 'bg-emerald-600 text-white' : 'bg-white/90'}`}>{measureMode ? 'Measure: On' : 'Measure'}</button>
-        <button onClick={() => setSnapMode(m => m === 'end' ? 'none' : 'end')} className={`rounded px-2 py-1 text-xs shadow ${snapMode==='end' ? 'bg-white/90' : 'bg-white/60'}`}>Snap: {snapMode==='end' ? 'End' : 'Off'}</button>
+  <button onClick={() => setSnapMode(m => m === 'end' ? 'mid' : m === 'mid' ? 'none' : 'end')} className={`rounded px-2 py-1 text-xs shadow ${snapMode!=='none' ? 'bg-white/90' : 'bg-white/60'}`}>Snap: {snapMode==='end' ? 'End' : snapMode==='mid' ? 'Mid' : 'Off'}</button>
         <button onClick={() => location.reload()} className="rounded bg-white/90 px-2 py-1 text-xs shadow">Reset</button>
         <div className="ml-2 hidden sm:flex items-center gap-1 text-xs text-zinc-700">
           <span>Views:</span>
@@ -230,20 +238,27 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
           </div>
         </div>
       )}
-      <Canvas onPointerMove={(e: any) => {
+  <Canvas gl={{ localClippingEnabled: true }} onPointerMove={(e: any) => {
         if (!measureMode) return
         const ray = e.ray
         if (!ray) return
         const t = -ray.origin.y / ray.direction.y
         const x = ray.origin.x + ray.direction.x * t
         const z = ray.origin.z + ray.direction.z * t
-        if (snapMode === 'end') {
+        if (snapMode !== 'none') {
           // gather simple snap points from frame nodes (column bases/tops and ridge)
           const half = width / 2
           const ridgeY = eaveHeight + width / roofSlope / 2
           const pts: [number, number, number][] = []
           zs.forEach((zz) => {
-            pts.push([-half, 0, zz], [-half, eaveHeight, zz], [half, 0, zz], [half, eaveHeight, zz], [0, ridgeY, zz])
+            // endpoints
+            pts.push([-half, 0, zz], [-half, eaveHeight, zz], [half, 0, zz], [half, eaveHeight, zz])
+            // midpoints if enabled
+            if (snapMode === 'mid') {
+              pts.push([0, eaveHeight/2, zz]) // column mid between bases and tops (simplified)
+            }
+            // ridge
+            pts.push([0, ridgeY, zz])
           })
           let best: [number, number, number] | undefined
           let bestD = Infinity
@@ -283,7 +298,7 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
           if (cutzParam == null && cut && selIndex >= 0 && i > selIndex) return null
           const uc = ucByFrame && ucByFrame[i] != null ? ucByFrame[i] : 0.6
           const color = ucToColor(uc)
-          return <Frame key={i} span={width} height={eaveHeight} slope={roofSlope} z={z} color={color} selected={i===selIndex} />
+          return <Frame key={i} span={width} height={eaveHeight} slope={roofSlope} z={z} color={color} selected={i===selIndex} clippingPlanes={clippingPlanes} />
         })}
         {/* section plane visuals */}
         {cutzParam != null && (
@@ -315,6 +330,29 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
           <mesh position={measure.b}>
             <sphereGeometry args={[0.1, 8, 8]} />
             <meshStandardMaterial color="#ef4444" />
+          </mesh>
+        )}
+        {measure.a && measure.b && (
+          <mesh>
+            {(() => {
+              const ax = measure.a![0], ay = measure.a![1], az = measure.a![2]
+              const bx = measure.b![0], by = measure.b![1], bz = measure.b![2]
+              const len = Math.hypot(bx-ax, by-ay, bz-az)
+              // Draw a thin cylinder from A to B
+              // Position at midpoint
+              const mx = (ax+bx)/2, my=(ay+by)/2, mz=(az+bz)/2
+              // Direction vector
+              const dx = bx-ax, dy=by-ay, dz=bz-az
+              const dir = new THREE.Vector3(dx, dy, dz).normalize()
+              const up = new THREE.Vector3(0,1,0)
+              const quat = new THREE.Quaternion().setFromUnitVectors(up, dir)
+              return (
+                <group position={[mx,my,mz]} quaternion={quat as any}>
+                  <cylinderGeometry args={[0.03, 0.03, len, 8]} />
+                  <meshStandardMaterial color="#0ea5e9" />
+                </group>
+              )
+            })()}
           </mesh>
         )}
         {measureMode && hoverSnap && (

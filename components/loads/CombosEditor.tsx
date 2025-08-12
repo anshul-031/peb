@@ -1,10 +1,12 @@
 "use client"
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 
 export type CombosEditorProps = {
   initial: string[]
   designCode?: string
   onSubmit?: () => void
+  onValidityChange?: (invalidCount: number) => void
+  onTextChange?: (text: string) => void
 }
 
 const KNOWN_CODES = [
@@ -25,31 +27,35 @@ function validateCombo(line: string): string | null {
   return null
 }
 
-export default function CombosEditor({ initial, designCode, onSubmit }: CombosEditorProps) {
+export default function CombosEditor({ initial, designCode, onSubmit, onValidityChange, onTextChange }: CombosEditorProps) {
   const [text, setText] = useState(initial.join('\n'))
   const [code, setCode] = useState<string>(designCode || KNOWN_CODES[0])
   const lines = useMemo(() => text.split('\n'), [text])
   const errors = useMemo(() => lines.map(l => validateCombo(l.trim())), [lines])
   const invalidCount = errors.filter(Boolean).length
 
-  async function loadPresets(selected: string) {
+  const loadPresets = useCallback(async (selected: string) => {
     try {
       const res = await fetch('/api/load-combinations', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ designCode: selected }) })
       const js = await res.json()
       if (Array.isArray(js.combinations)) {
-        setText(js.combinations.join('\n'))
+        const next = js.combinations.join('\n')
+        setText(next)
+        onTextChange?.(next)
       }
     } catch {}
-  }
+  }, [onTextChange])
 
   function normalize() {
     const norm = lines.map(l => l.replace(/\s+/g, ' ').trim()).filter(Boolean).join('\n')
     setText(norm)
+    onTextChange?.(norm)
   }
 
-  function clearAll() { setText('') }
+  function clearAll() { setText(''); onTextChange?.('') }
 
-  useEffect(() => { if (!text && designCode) { loadPresets(designCode) } }, [designCode, text])
+  useEffect(() => { if (!text && designCode) { loadPresets(designCode) } }, [designCode, text, loadPresets])
+  useEffect(() => { onValidityChange?.(invalidCount) }, [invalidCount, onValidityChange])
 
   return (
     <div>
@@ -65,7 +71,7 @@ export default function CombosEditor({ initial, designCode, onSubmit }: CombosEd
         <span className={`ml-auto text-xs ${invalidCount? 'text-red-600':'text-emerald-600'}`}>{invalidCount? `${invalidCount} invalid line(s)` : 'All lines look OK'}</span>
       </div>
       <div className="mt-2">
-        <textarea name="combos" value={text} onChange={(e)=>setText(e.target.value)} className="h-56 w-full rounded border p-2 font-mono text-sm" />
+        <textarea name="combos" value={text} onChange={(e)=>{ setText(e.target.value); onTextChange?.(e.target.value) }} className="h-56 w-full rounded border p-2 font-mono text-sm" />
       </div>
       {invalidCount>0 && (
         <div className="mt-2 text-xs text-red-600">
