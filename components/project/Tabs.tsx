@@ -10,6 +10,7 @@ const tabs = [
   { href: (id: string) => `/app/projects/${id}/foundation`, label: 'Foundation' },
   { href: (id: string) => `/app/projects/${id}/versions`, label: 'Versions' },
   { href: (id: string) => `/app/projects/${id}/reports`, label: 'Reports' },
+  { href: (id: string) => `/app/projects/${id}/bom`, label: 'BOM' },
   { href: (id: string) => `/app/projects/${id}/drawings`, label: 'Drawings' },
   { href: (id: string) => `/app/projects/${id}/interop`, label: 'Interoperability' },
 ]

@@ -36,6 +36,12 @@ export default async function ReportsPage({ params }: { params: { id: string } }
         </a>
         <a
           className="inline-flex items-center rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700"
+          href={`/api/reports/pdf?projectId=${project.id}`}
+        >
+          Download BOM PDF
+        </a>
+        <a
+          className="inline-flex items-center rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700"
           href={`/api/drawings/dxf`}
         >
           Export DXF

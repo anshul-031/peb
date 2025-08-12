@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import WizardWindFields from '@/components/loads/WizardWindFields'
 
 async function saveWizard(projectId: string, formData: FormData) {
   'use server'
@@ -9,12 +10,15 @@ async function saveWizard(projectId: string, formData: FormData) {
   const live = Number(formData.get('live') || 0)
   const windSpeed = Number(formData.get('windSpeed') || 90)
   const exposure = String(formData.get('exposure') || 'C')
+  const importance = Number(formData.get('importance') || 1.0)
+  const directionality = Number(formData.get('directionality') || 0.85)
+  const topography = Number(formData.get('topography') || 1.0)
   const seismicZone = String(formData.get('seismicZone') || 'II')
   const designCode = String(formData.get('designCode') || 'ASCE 7-16')
   const comboRes = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/load-combinations`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ designCode }) })
   const combos = (await comboRes.json()).combinations
   await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${projectId}/loads`, {
-    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dead, live, windSpeed, exposure, seismicZone, designCode, combos })
+    method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ dead, live, windSpeed, exposure, importance, directionality, topography, seismicZone, designCode, combos })
   })
   redirect(`/app/projects/${projectId}/loads`)
 }
@@ -34,6 +38,7 @@ export default async function LoadsWizardPage({ params }: { params: { id: string
   })
   if (!project) return <div className="py-10 text-center">Not found</div>
 
+  const dims = ((await prisma.project.findUnique({ where: { id: params.id } }))?.buildingData as any)?.dimensions || {}
   return (
     <div>
       <h3 className="text-lg font-semibold">Loads Wizard</h3>
@@ -60,17 +65,8 @@ export default async function LoadsWizardPage({ params }: { params: { id: string
         </label>
         <div className="col-span-2 mt-2 border-t pt-3">
           <div className="text-sm font-medium">Wind</div>
-          <div className="mt-2 grid grid-cols-2 gap-3">
-            <label className="flex flex-col">Basic wind speed (mph)
-              <input name="windSpeed" type="number" step="1" defaultValue={90} className="mt-1 rounded border px-2 py-1" />
-            </label>
-            <label className="flex flex-col">Exposure
-              <select name="exposure" defaultValue={'C'} className="mt-1 rounded border px-2 py-1">
-                <option>B</option>
-                <option>C</option>
-                <option>D</option>
-              </select>
-            </label>
+          <div className="mt-2">
+            <WizardWindFields defaults={{ windSpeed: 90, exposure: 'C', importance: 1.0, directionality: 0.85, topography: 1.0, eaveHeight_m: Number(dims.eaveHeight ?? 6) }} />
           </div>
         </div>
         <div className="col-span-2 border-t pt-3">

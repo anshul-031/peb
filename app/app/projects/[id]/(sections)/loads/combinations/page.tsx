@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import CombosEditor from '@/components/loads/CombosEditor'
 
 async function saveCombos(projectId: string, formData: FormData) {
   'use server'
@@ -27,16 +28,26 @@ export default async function LoadCombinationsEditor({ params }: { params: { id:
   })
   if (!project) return <div className="py-10 text-center">Not found</div>
   const ld = (project.loadData as any) || {}
-  const combos = (ld.combos as string[]) || []
+  let combos = (ld.combos as string[]) || []
+  // Support preset via query (?code=ASCE%207-16)
+  try {
+    const url = new URL(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/load-combinations`)
+    url.searchParams.set('designCode', (ld.designCode || 'ASCE 7-16'))
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ designCode: ld.designCode || 'ASCE 7-16' }) })
+    const js = await res.json()
+    if (Array.isArray(js.combinations) && combos.length === 0) combos = js.combinations
+  } catch {}
 
   return (
     <div>
       <h3 className="text-lg font-semibold">Custom Load Combinations</h3>
-      <p className="mt-1 text-sm text-zinc-600">One combination per line, e.g., 1.2D + 1.6L + 0.5S</p>
+  <p className="mt-1 text-sm text-zinc-600">One combination per line, e.g., 1.2D + 1.6L + 0.5S</p>
+  <div className="mt-2 text-xs text-zinc-600">Tip: Visit this page after the wizard to auto-fill presets for your selected code.</div>
       <form action={saveCombos.bind(null, project.id)} className="mt-4">
-        <textarea name="combos" defaultValue={combos.join('\n')} className="h-56 w-full rounded border p-2 font-mono text-sm" />
-        <div className="mt-3">
+        <CombosEditor initial={combos} designCode={ld.designCode || 'ASCE 7-16'} />
+        <div className="mt-3 flex items-center gap-3">
           <button className="rounded bg-zinc-900 px-4 py-2 text-white">Save Combos</button>
+          <span className="text-xs text-zinc-500">You can apply presets, normalize, and validate before saving.</span>
         </div>
       </form>
     </div>

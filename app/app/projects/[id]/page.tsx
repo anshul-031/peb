@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
 import Viewer3D from '@/components/Viewer3D'
+import BuildingTree from '@/components/BuildingTree'
 
 async function saveDimensions(projectId: string, formData: FormData) {
   'use server'
@@ -52,13 +53,7 @@ export default async function ProjectEditor({ params }: { params: { id: string }
       <div className="mt-4 grid grid-cols-12 gap-4">
         {/* Left: hierarchy */}
         <aside className="col-span-12 md:col-span-2 rounded border p-3">
-          <div className="text-sm font-medium">Building</div>
-          <ul className="mt-2 text-sm space-y-1">
-            <li>Frames</li>
-            <li>Bays</li>
-            <li>Bracing</li>
-            <li>Openings</li>
-          </ul>
+          <BuildingTree dims={d} />
         </aside>
         {/* Center: 3D */}
         <section className="col-span-12 md:col-span-6 rounded border p-3">

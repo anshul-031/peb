@@ -39,6 +39,10 @@ export default async function FoundationPage({ params }: { params: { id: string 
   return (
     <div>
       <h2 className="text-xl font-semibold">Foundation</h2>
+      <div className="mt-3 grid grid-cols-2 gap-3 max-w-xl text-sm">
+        <div className="rounded border bg-white p-3"><div className="text-xs text-zinc-500">qAllow (kPa)</div><div className="text-base font-medium">{(data as any).qAllow ?? 150}</div></div>
+        <div className="rounded border bg-white p-3"><div className="text-xs text-zinc-500">Footing size</div><div className="text-base font-medium">{(data as any).footingSize ?? '—'}</div></div>
+      </div>
       <pre className="mt-4 bg-gray-50 p-4 rounded text-sm overflow-x-auto">{JSON.stringify(data, null, 2)}</pre>
   <form action={designAndSave} className="mt-4 flex gap-2 text-sm">
         <label className="flex items-center gap-2">qAllow (kPa)

@@ -2,6 +2,7 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import Link from 'next/link'
+import QzPreview from '@/components/loads/QzPreview'
 import { redirect } from 'next/navigation'
 
 async function saveLoads(projectId: string, formData: FormData) {
@@ -56,6 +57,9 @@ export default async function LoadsPage({ params }: { params: { id: string } }) 
       <h2 className="text-xl font-semibold">Loads</h2>
   <p className="text-sm text-gray-500">Wind/seismic wizard preview and custom combinations coming soon.</p>
       <pre className="mt-4 bg-gray-50 p-4 rounded text-sm overflow-x-auto">{JSON.stringify(loads, null, 2)}</pre>
+      <div className="mt-3">
+        <QzPreview windSpeed={Number(loads.windSpeed ?? 90)} exposure={(loads.exposure ?? 'C') as any} importance={Number(loads.importance ?? 1.0)} directionality={Number(loads.directionality ?? 0.85)} topography={Number(loads.topography ?? 1.0)} eaveHeight_m={Number(dimensions.eaveHeight ?? 6)} />
+      </div>
       <div className="mt-2 text-xs text-zinc-600">Approx. wind pressure qz: {qz.toFixed(2)} kPa</div>
   <form action={saveLoads.bind(null, project.id)} className="mt-4 grid grid-cols-2 gap-4 max-w-xl">
         <label className="flex flex-col text-sm">Basic wind speed (m/s)
