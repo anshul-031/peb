@@ -2,6 +2,8 @@ import './globals.css'
 import type { Metadata } from 'next'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
+import { ToastProvider } from '@/components/Toast'
+import ToastOnQuery from '@/components/ToastOnQuery'
 
 export const metadata: Metadata = {
   title: 'ApexStruct – Intelligent Steel Design. In the Cloud.',
@@ -16,7 +18,7 @@ export default async function RootLayout({
   const session = await getServerSession(authOptions)
   return (
     <html lang="en">
-      <body className="min-h-screen bg-white text-zinc-900 antialiased">
+  <body className="min-h-screen bg-white text-zinc-900 antialiased">
         <header className="border-b">
           <div className="mx-auto flex max-w-6xl items-center justify-between px-6 py-3 text-sm">
             <a href="/" className="font-semibold">ApexStruct</a>
@@ -37,7 +39,10 @@ export default async function RootLayout({
             </nav>
           </div>
         </header>
-        {children}
+        <ToastProvider>
+          <ToastOnQuery />
+          {children}
+        </ToastProvider>
       </body>
     </html>
   )

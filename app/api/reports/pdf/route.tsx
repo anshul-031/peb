@@ -58,6 +58,7 @@ export async function GET(req: NextRequest) {
 
   const styles = StyleSheet.create({ page: { padding: 24 }, h1: { fontSize: 18, marginBottom: 8 }, h2: { fontSize: 14, marginTop: 8, marginBottom: 4 }, p: { fontSize: 10, marginBottom: 4 }, code: { fontSize: 9, color: '#444' } })
   const dims = (project.buildingData as any)?.dimensions || {}
+  const sec = (project.buildingData as any)?.secondary || {}
   const items = [
     { part: 'Rafter', size: 'Tapered', qty: 2 * (((dims.bays || 0) + 1) || 1), length_m: Number(dims.width || 0) || 10 },
     { part: 'Column', size: 'Tapered', qty: 2 * (((dims.bays || 0) + 1) || 1), length_m: Number(dims.eaveHeight || 0) || 6 },
@@ -80,9 +81,10 @@ export async function GET(req: NextRequest) {
       <Page size="A4" style={styles.page}>
         <Text style={styles.h1}>{project.projectName}</Text>
         <Text style={styles.p}>Code: {project.designCode} · Units: {project.unitSystem}</Text>
-        <Text style={styles.h2}>Building</Text>
-        <Text style={styles.p}>{JSON.stringify(project.buildingData)}</Text>
-        <Text style={styles.h2}>Loads</Text>
+  <Text style={styles.h2}>Building</Text>
+  <Text style={styles.p}>Width: {dims.width ?? '—'} m · Length: {dims.length ?? '—'} m · Eave ht: {dims.eaveHeight ?? '—'} m · Roof slope: {dims.roofSlope ?? '—'} · Bays: {dims.bays ?? '—'}</Text>
+  <Text style={styles.p}>Secondary: purlin {sec.pSection ?? '—'} @ {sec.purlin ?? '—'} m · girt {sec.gSection ?? '—'} @ {sec.girt ?? '—'} m · bracing {sec.bracing ?? '—'}</Text>
+  <Text style={styles.h2}>Loads</Text>
         <Text style={styles.p}>Design code: {(ld.designCode || project.designCode) ?? '—'}</Text>
         <Text style={styles.p}>Wind: V={wind.V ?? '—'} · Exposure={wind.exposure ?? '—'} · I={wind.I ?? '—'} · Kd={wind.Kd ?? '—'} · Ke={wind.Ke ?? '—'}</Text>
         {combos.length>0 ? (
@@ -96,7 +98,7 @@ export async function GET(req: NextRequest) {
         )}
         <Text style={styles.h2}>Analysis</Text>
         <Text style={styles.p}>{JSON.stringify(project.analysisResults)}</Text>
-        <Text style={styles.h2}>BOM (estimate)</Text>
+  <Text style={styles.h2}>BOM (estimate)</Text>
         <Text style={styles.p}>Totals: pieces {bomTotals.qty}, total length {bomTotals.len.toFixed(1)} m, est. weight {(bomTotals.kg/1000).toFixed(2)} t</Text>
         {withCalcs.map((it, idx) => (
           <Text key={idx} style={styles.p}>
@@ -111,10 +113,13 @@ export async function GET(req: NextRequest) {
           const totalCost = material + misc
           return <Text style={styles.p}>Cost (rough): rate {rate}/kg · misc {(miscPct*100).toFixed(0)}% → material {material.toFixed(0)}, misc {misc.toFixed(0)}, total {totalCost.toFixed(0)}</Text>
         })()}
-        <Text style={styles.h2}>Connections</Text>
+  <Text style={styles.h2}>Connections</Text>
         <Text style={styles.p}>{JSON.stringify(project.connectionDesigns)}</Text>
   <Text style={styles.p}>Summary: joints {Array.isArray((project.connectionDesigns as any)?.joints) ? (project.connectionDesigns as any).joints.length : 0} · status {(project.connectionDesigns as any)?.status || '—'}</Text>
-        <Text style={styles.h2}>Foundations</Text>
+  <Text style={styles.h2}>Foundations</Text>
+  {/* Roof framing plan note */}
+  <Text style={styles.h2}>Roof Framing Plan (overview)</Text>
+  <Text style={styles.p}>Rectangular roof {dims.width ?? '—'} m x {dims.length ?? '—'} m with approx. purlin spacing {sec.purlin ?? '—'} m.</Text>
         <Text style={styles.p}>{JSON.stringify(project.foundationDesigns)}</Text>
   <Text style={styles.p}>Summary: qAllow {(project.foundationDesigns as any)?.qAllow ?? '—'} kPa · footing {(project.foundationDesigns as any)?.footingSize ?? '—'}</Text>
       </Page>

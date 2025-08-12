@@ -1,7 +1,11 @@
 import dynamic from 'next/dynamic'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/lib/auth'
 const Viewer3D = dynamic(() => import('@/components/Viewer3D'), { ssr: false })
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getServerSession(authOptions)
+  const openHref = session?.user?.email ? '/app/projects' : '/signin?callbackUrl=%2Fapp%2Fprojects'
   const modules = [
     { href: '/app/projects', title: 'Projects', desc: 'Create, manage, and version your PEB/LGS projects.' },
     { href: '/app/projects', title: 'Geometry', desc: 'Define spans, bays, slopes, heights, and openings.' },
@@ -30,7 +34,7 @@ export default function LandingPage() {
             Model geometry, auto-generate loads, run analysis, and export reports — all in your browser.
           </p>
           <div className="mt-8 flex items-center justify-center gap-3">
-            <a className="rounded-md bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-5 py-3 text-white shadow hover:opacity-95" href="/app/projects">Open App</a>
+            <a className="rounded-md bg-gradient-to-r from-indigo-600 to-fuchsia-600 px-5 py-3 text-white shadow hover:opacity-95" href={openHref}>Open App</a>
             <a className="rounded-md border border-zinc-300 px-5 py-3 hover:border-indigo-300 hover:text-indigo-700" href="/signup">Get started</a>
           </div>
         </div>

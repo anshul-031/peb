@@ -22,11 +22,27 @@ export default async function BomPage({ params }: { params: { id: string } }) {
 
   const bd = (project.buildingData as any) || {}
   const dims = bd.dimensions || {}
+  const sec = bd.secondary || { purlin: 1.5, girt: 1.5, pSection: 'Z200', gSection: 'Z200' }
   const uc = ((project.analysisResults as any)?.frameUC || []) as number[]
+  const bayCount = (dims.bays || 0) + 1
+  const purlinCount = Math.max(Math.round((Number(dims.length || 0) || 24) / (sec.purlin || 1.5)), 1)
+  const girtCount = Math.max(Math.round((Number(dims.width || 0) || 10) / (sec.girt || 1.5)) * bayCount, 1)
+  const roofArea = (Number(dims.width || 0) || 10) * (Number(dims.length || 0) || 24)
+  const wallArea = (2 * (Number(dims.length || 0) || 24) + 2 * (Number(dims.width || 0) || 10)) * (Number(dims.eaveHeight || 0) || 6)
+  const frames = (dims.bays || 0) + 1
+  const boltsPerFrame = 24 // rough HSFG bolts for moment connections, per frame
+  const anchorBoltsPerColumn = 4
   const items = [
     { part: 'Rafter', size: 'Tapered', qty: 2 * (((dims.bays || 0) + 1) || 1), length_m: Number(dims.width || 0) || 10 },
     { part: 'Column', size: 'Tapered', qty: 2 * (((dims.bays || 0) + 1) || 1), length_m: Number(dims.eaveHeight || 0) || 6 },
-    { part: 'Purlin', size: 'Z200', qty: Math.max(Math.round((Number(dims.length || 0) || 24) / 1.5), 12), length_m: 6 },
+    { part: 'Purlin', size: sec.pSection || 'Z200', qty: purlinCount, length_m: 6 },
+    { part: 'Girt', size: sec.gSection || 'Z200', qty: girtCount, length_m: 6 },
+    // Cladding modeled with area in m^2 encoded in length_m and kg/m^2 as unit mass
+    { part: 'Roof Cladding', size: '0.5mm', qty: 1, length_m: Number(roofArea.toFixed(2)), note: 'Area (m^2)' } as any,
+    { part: 'Wall Cladding', size: '0.5mm', qty: 1, length_m: Number(wallArea.toFixed(2)), note: 'Area (m^2)' } as any,
+    // Bolts modeled as per-piece mass: length_m=1 and unitMass=kg/pc
+    { part: 'Bolt', size: 'M20', qty: frames * boltsPerFrame, length_m: 1 },
+    { part: 'Anchor Bolt', size: 'M20', qty: frames * 2 * anchorBoltsPerColumn, length_m: 1 },
   ] as { part: string; size: string; qty: number; length_m: number }[]
 
   // Simple unit mass map (kg/m); clearly marked as estimate
@@ -34,6 +50,17 @@ export default async function BomPage({ params }: { params: { id: string } }) {
     'Rafter|Tapered': 35,
     'Column|Tapered': 45,
     'Purlin|Z200': 16,
+    'Purlin|Z250': 18,
+    'Purlin|Z300': 21,
+    'Girt|Z200': 16,
+    'Girt|Z250': 18,
+    'Girt|Z300': 21,
+  // Cladding (kg/m^2)
+  'Roof Cladding|0.5mm': 6.8,
+  'Wall Cladding|0.5mm': 6.8,
+  // Bolts (kg/pc) modelled as kg per 1 m unit
+  'Bolt|M20': 0.24,
+  'Anchor Bolt|M20': 0.50,
   }
   const withCalcs = items.map(it => {
     const key = `${it.part}|${it.size}`
@@ -115,7 +142,7 @@ export default async function BomPage({ params }: { params: { id: string } }) {
           </table>
         </div>
         <div className="mt-3">
-          <div className="text-xs text-zinc-500 mb-1">Estimates use generic unit mass per part: Rafter 35, Column 45, Purlin (Z200) 16 kg/m.</div>
+          <div className="text-xs text-zinc-500 mb-1">Estimates use generic unit masses: Rafter 35, Column 45, Purlin (Z200) 16 kg/m; Cladding 6.8 kg/m²; Bolt M20 ≈ 0.24 kg/pc. Cladding uses area as “Length (m)”.</div>
           <BomExportButton items={withCalcs as any} />
         </div>
       </div>

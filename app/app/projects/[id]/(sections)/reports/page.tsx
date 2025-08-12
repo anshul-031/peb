@@ -41,20 +41,26 @@ export default async function ReportsPage({ params }: { params: { id: string } }
           Download BOM PDF
         </a>
         <a
+          className="inline-flex items-center rounded bg-teal-600 px-3 py-2 text-white hover:bg-teal-700"
+          href={`/api/bom?projectId=${project.id}`}
+        >
+          Download BOM CSV
+        </a>
+        <a
           className="inline-flex items-center rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700"
-          href={`/api/drawings/dxf`}
+          href={`/api/drawings/dxf?projectId=${project.id}`}
         >
           Export DXF
         </a>
         <a
           className="inline-flex items-center rounded bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700"
-          href={`/api/interop/ifc/export`}
+          href={`/api/interop/ifc/export?projectId=${project.id}`}
         >
           Export IFC (stub)
         </a>
         <a
           className="inline-flex items-center rounded bg-fuchsia-600 px-3 py-2 text-white hover:bg-fuchsia-700"
-          href={`/api/interop/cis2/export`}
+          href={`/api/interop/cis2/export?projectId=${project.id}`}
         >
           Export CIS/2 (stub)
         </a>
