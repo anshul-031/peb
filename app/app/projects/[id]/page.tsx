@@ -70,6 +70,23 @@ async function saveOpenings(projectId: string, formData: FormData) {
   redirect(`/app/projects/${projectId}`)
 }
 
+async function saveWindows(projectId: string, formData: FormData) {
+  'use server'
+  const session = await getServerSession(authOptions)
+  const role = await getProjectRole(projectId, session?.user?.email || undefined)
+  if (role !== 'OWNER' && role !== 'EDITOR') return
+  const w = Number(formData.get('winW') || 1.5)
+  const h = Number(formData.get('winH') || 1.2)
+  const sill = Number(formData.get('winSill') || 1.0)
+  const z = Number(formData.get('winZ') || 0)
+  const prev = await prisma.project.findUnique({ where: { id: projectId } })
+  const bd = (prev?.buildingData as any) || {}
+  const windows = Array.isArray(bd?.openings?.windows) ? bd.openings.windows : []
+  const next = { ...bd, openings: { ...bd.openings, windows: [...windows, { w, h, sill, z }] } }
+  await prisma.project.update({ where: { id: projectId }, data: { buildingData: next } })
+  redirect(`/app/projects/${projectId}`)
+}
+
 async function runAnalysis(projectId: string) {
   'use server'
   const res = await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/analysis`, {
@@ -113,6 +130,7 @@ export default async function ProjectEditor({ params }: { params: { id: string }
   const role = await getProjectRole(project.id, email)
   const canEdit = role === 'OWNER' || role === 'EDITOR'
   const d = (project.buildingData as any)?.dimensions || {}
+  const openings = (project.buildingData as any)?.openings || {}
   const settings = (project.buildingData as any)?.settings || {}
   const ucByFrame = ((project.analysisResults as any)?.frameUC as number[]) || Array.from({ length: Number(d.bays) || 4 }, () => 0.6)
   return (
@@ -147,7 +165,7 @@ export default async function ProjectEditor({ params }: { params: { id: string }
         <section className="col-span-12 md:col-span-6 rounded border p-3">
           <div className="text-sm font-medium">3D Viewer</div>
           <div className="mt-2">
-            <Viewer3D width={Number(d.width) || 10} length={Number(d.length) || 24} eaveHeight={Number(d.eaveHeight) || 6} roofSlope={Number(d.roofSlope) || 10} bays={Number(d.bays) || 4} ucByFrame={ucByFrame} />
+            <Viewer3D width={Number(d.width) || 10} length={Number(d.length) || 24} eaveHeight={Number(d.eaveHeight) || 6} roofSlope={Number(d.roofSlope) || 10} bays={Number(d.bays) || 4} ucByFrame={ucByFrame} openings={openings as any} />
           </div>
         </section>
   {/* Right: properties */}
@@ -309,6 +327,32 @@ export default async function ProjectEditor({ params }: { params: { id: string }
               </label>
               <div className="col-span-3"><button className="rounded bg-zinc-900 px-3 py-1.5 text-white" disabled={!canEdit}>Add Door</button></div>
             </form>
+            <form action={saveWindows.bind(null, project.id)} className="mt-3 grid grid-cols-4 gap-3 text-xs">
+              <label className="flex flex-col">Window W (m)
+                <input name="winW" type="number" step="0.1" className="mt-1 rounded border px-2 py-1" disabled={!canEdit} />
+              </label>
+              <label className="flex flex-col">Window H (m)
+                <input name="winH" type="number" step="0.1" className="mt-1 rounded border px-2 py-1" disabled={!canEdit} />
+              </label>
+              <label className="flex flex-col">Sill (m)
+                <input name="winSill" type="number" step="0.1" className="mt-1 rounded border px-2 py-1" disabled={!canEdit} />
+              </label>
+              <label className="flex flex-col">At Z (m)
+                <input name="winZ" type="number" step="0.1" className="mt-1 rounded border px-2 py-1" disabled={!canEdit} />
+              </label>
+              <div className="col-span-4"><button className="rounded bg-zinc-900 px-3 py-1.5 text-white" disabled={!canEdit}>Add Window</button></div>
+            </form>
+            <div className="mt-3 text-xs text-zinc-600">
+              <div className="font-medium">Saved</div>
+              <div className="mt-1 flex flex-wrap gap-2">
+                {Array.isArray((openings as any)?.doors) && (openings as any).doors.map((o: any, i: number) => (
+                  <span key={`d-${i}`} className="rounded border px-2 py-0.5">Door W{o.w}×H{o.h} @Z{o.z}</span>
+                ))}
+                {Array.isArray((openings as any)?.windows) && (openings as any).windows.map((o: any, i: number) => (
+                  <span key={`w-${i}`} className="rounded border px-2 py-0.5">Window W{o.w}×H{o.h} S{o.sill} @Z{o.z}</span>
+                ))}
+              </div>
+            </div>
           </div>
           {/* Collaborators (basic) */}
           <Collaborators projectId={project.id} isOwner={role === 'OWNER'} />

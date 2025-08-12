@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import LogsFeed from '@/components/project/LogsFeed'
 
 export default async function LogsPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -28,20 +29,9 @@ export default async function LogsPage({ params }: { params: { id: string } }) {
       <form action={clearLogs} className="mt-3">
         <button className="rounded border px-3 py-1 text-sm">Clear logs</button>
       </form>
-      <ul className="mt-4 space-y-2 text-xs">
-        {logs.length === 0 && <li className="rounded border bg-white p-3">No logs yet.</li>}
-        {logs.slice(Math.max(0, logs.length - 200)).reverse().map((l: any, i: number) => (
-          <li key={i} className="rounded border bg-white p-3">
-            <div className="flex items-center justify-between">
-              <div className="font-mono text-[11px] text-zinc-600">{l.time}</div>
-              <div className={`rounded px-1 py-0.5 text-[10px] ${l.level==='error'?'bg-red-100 text-red-800':l.level==='warn'?'bg-amber-100 text-amber-800':l.level==='debug'?'bg-zinc-100 text-zinc-800':'bg-emerald-100 text-emerald-800'}`}>{l.level}</div>
-            </div>
-            <div className="mt-1 font-medium">{l.source}</div>
-            <div className="text-zinc-700">{l.message}</div>
-            {l.meta && <pre className="mt-1 overflow-auto rounded bg-zinc-50 p-2">{JSON.stringify(l.meta, null, 2)}</pre>}
-          </li>
-        ))}
-      </ul>
+      <div className="mt-4">
+        <LogsFeed projectId={project.id} initialLogs={logs} />
+      </div>
     </div>
   )
 }

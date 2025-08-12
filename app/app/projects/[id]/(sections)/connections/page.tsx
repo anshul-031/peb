@@ -2,6 +2,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import ConnectionCalc from '@/components/design/ConnectionCalc'
+import ConnectionDetailSVG from '@/components/design/ConnectionDetailSVG'
 
 export default async function ConnectionsPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -43,7 +45,14 @@ export default async function ConnectionsPage({ params }: { params: { id: string
         <div className="rounded border bg-white p-3"><div className="text-xs text-zinc-500">Designed joints</div><div className="text-base font-medium">{Array.isArray((data as any).joints) ? (data as any).joints.length : 0}</div></div>
         <div className="rounded border bg-white p-3"><div className="text-xs text-zinc-500">Last status</div><div className="text-base font-medium">{(data as any).status || '—'}</div></div>
       </div>
-      <pre className="mt-4 bg-gray-50 p-4 rounded text-sm overflow-x-auto">{JSON.stringify(data, null, 2)}</pre>
+      <div className="mt-4">
+        <ConnectionCalc data={data} />
+      </div>
+      {Array.isArray((data as any)?.joints) && (data as any).joints.length > 0 && (
+        <div className="mt-4">
+          <ConnectionDetailSVG joint={(data as any).joints[0]} />
+        </div>
+      )}
   <form action={designAndSave} className="mt-4 flex gap-2 text-sm">
         <select name="joint" className="rounded border px-2 py-1">
           <option>Rafter-Column</option>

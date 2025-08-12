@@ -37,6 +37,9 @@ export default function JobStatusPage() {
         <div className="mt-4 rounded border bg-white p-3 text-sm">
           <div><span className="text-zinc-500">Job:</span> <span className="font-mono">{info.jobId}</span></div>
           <div className="mt-1"><span className="text-zinc-500">State:</span> <span className="font-medium">{info.state}</span>{typeof info.progress === 'number' ? <span className="ml-2 text-zinc-500">({info.progress}%)</span> : null}</div>
+          {info.state === 'completed' && projectId && info.result && !String(info.jobId||'').startsWith('local') && (
+            <PersistResults projectId={projectId} results={info.result} />
+          )}
           {info.state === 'completed' && projectId && (
             (() => {
               const id = String(info.jobId||'')
@@ -51,4 +54,18 @@ export default function JobStatusPage() {
       <pre className="mt-6 overflow-auto rounded border bg-zinc-50 p-4 text-xs">{JSON.stringify(info, null, 2)}</pre>
     </main>
   )
+}
+
+function PersistResults({ projectId, results }: { projectId: string; results: any }) {
+  const [done, setDone] = useState(false)
+  useEffect(() => {
+    if (done) return
+    (async () => {
+      try {
+        await fetch('/api/analysis/persist', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ projectId, results, note: results?.engine ? 'OpenSees analysis' : 'Queued analysis' }) })
+      } catch {}
+      setDone(true)
+    })()
+  }, [done, projectId, results])
+  return done ? <div className="mt-2 text-xs text-emerald-700">Results saved.</div> : <div className="mt-2 text-xs text-zinc-600">Saving results…</div>
 }

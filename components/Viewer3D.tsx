@@ -13,6 +13,10 @@ type Props = {
   roofSlope?: number // 1:x
   bays?: number // count
   ucByFrame?: number[] // utilization per frame index (0..bays-1)
+  openings?: {
+    doors?: { w: number; h: number; z: number }[]
+    windows?: { w: number; h: number; sill: number; z: number }[]
+  }
 }
 
 function Frame({ span = 10, height = 6, slope = 10, z = 0, color = '#3b82f6', selected = false, clippingPlanes, onClick }: { span?: number; height?: number; slope?: number; z?: number; color?: string; selected?: boolean; clippingPlanes?: THREE.Plane[]; onClick?: () => void }) {
@@ -44,7 +48,7 @@ function ucToColor(uc: number): string {
   return '#ef4444' // red
 }
 
-export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roofSlope = 10, bays = 4, ucByFrame }: Props) {
+export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roofSlope = 10, bays = 4, ucByFrame, openings }: Props) {
   const spacing = length / (bays || 1)
   const zs = useMemo(() => Array.from({ length: bays || 1 }, (_, i) => -length / 2 + i * spacing), [bays, length, spacing])
   const [ortho, setOrtho] = useState(false)
@@ -325,6 +329,35 @@ export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roof
             <meshStandardMaterial color="#22c55e" transparent opacity={0.2} />
           </mesh>
         )}
+        {/* Openings on left wall (x = -width/2) */}
+        {Array.isArray(openings?.doors) && openings!.doors!.map((d, i) => {
+          const w = Math.max(0.3, Number(d.w) || 0)
+          const h = Math.max(0.3, Number(d.h) || 0)
+          // center at z, clamp within length
+          const zc = Math.min(length/2 - w/2, Math.max(-length/2 + w/2, Number(d.z) || 0))
+          if (cutzParam != null && (zc > (cutz ?? 0))) return null
+          const y = h/2
+          return (
+            <mesh key={`door-${i}`} position={[-width/2 + 0.02, y, zc]}>
+              <boxGeometry args={[0.04, h, w]} />
+              <meshStandardMaterial color="#60a5fa" transparent opacity={0.4} clippingPlanes={clippingPlanes} />
+            </mesh>
+          )
+        })}
+        {Array.isArray(openings?.windows) && openings!.windows!.map((win, i) => {
+          const w = Math.max(0.3, Number(win.w) || 0)
+          const h = Math.max(0.3, Number(win.h) || 0)
+          const sill = Math.max(0, Number(win.sill) || 0)
+          const zc = Math.min(length/2 - w/2, Math.max(-length/2 + w/2, Number(win.z) || 0))
+          if (cutzParam != null && (zc > (cutz ?? 0))) return null
+          const y = sill + h/2
+          return (
+            <mesh key={`win-${i}`} position={[-width/2 + 0.02, y, zc]}>
+              <boxGeometry args={[0.04, h, w]} />
+              <meshStandardMaterial color="#22d3ee" transparent opacity={0.45} clippingPlanes={clippingPlanes} />
+            </mesh>
+          )
+        })}
         {/* measurement markers */}
         {measure.a && (
           <mesh position={measure.a}>

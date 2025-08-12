@@ -45,7 +45,10 @@ export default async function InteropPage({ params }: { params: { id: string } }
       <div className="mt-5 flex gap-3 flex-wrap">
   <a className="rounded bg-indigo-600 px-3 py-2 text-white hover:bg-indigo-700" href={`/api/interop/ifc/export?projectId=${project.id}`}>Export IFC</a>
   <a className="rounded bg-fuchsia-600 px-3 py-2 text-white hover:bg-fuchsia-700" href={`/api/interop/cis2/export?projectId=${project.id}`}>Export CIS/2</a>
-  <a className="rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700" href={`/api/drawings/dxf?projectId=${project.id}`}>Export DXF</a>
+  <a className="rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700" href={`/api/drawings/dxf?projectId=${project.id}&sheet=anchor`}>DXF: Anchor</a>
+  <a className="rounded bg-teal-600 px-3 py-2 text-white hover:bg-teal-700" href={`/api/drawings/dxf?projectId=${project.id}&sheet=frame-elev`}>DXF: Elevation</a>
+  <a className="rounded bg-cyan-600 px-3 py-2 text-white hover:bg-cyan-700" href={`/api/drawings/dxf?projectId=${project.id}&sheet=roof-plan`}>DXF: Roof</a>
+  <a className="rounded bg-sky-700 px-3 py-2 text-white hover:bg-sky-800" href={`/api/drawings/dxf?projectId=${project.id}&sheet=footing-layout`}>DXF: Footings</a>
   <form action={`/api/interop/ifc/import?projectId=${project.id}`} method="post">
           <button className="rounded bg-gray-700 px-3 py-2 text-white hover:bg-gray-800" type="submit">Import IFC (JSON stub)</button>
         </form>

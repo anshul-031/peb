@@ -2,6 +2,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { redirect } from 'next/navigation'
+import FoundationCalc from '@/components/design/FoundationCalc'
+import FoundationDetailSVG from '@/components/design/FoundationDetailSVG'
 
 export default async function FoundationPage({ params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
@@ -43,7 +45,12 @@ export default async function FoundationPage({ params }: { params: { id: string 
         <div className="rounded border bg-white p-3"><div className="text-xs text-zinc-500">qAllow (kPa)</div><div className="text-base font-medium">{(data as any).qAllow ?? 150}</div></div>
         <div className="rounded border bg-white p-3"><div className="text-xs text-zinc-500">Footing size</div><div className="text-base font-medium">{(data as any).footingSize ?? '—'}</div></div>
       </div>
-      <pre className="mt-4 bg-gray-50 p-4 rounded text-sm overflow-x-auto">{JSON.stringify(data, null, 2)}</pre>
+      <div className="mt-4">
+        <FoundationCalc data={data} />
+      </div>
+      <div className="mt-4">
+        <FoundationDetailSVG data={data} />
+      </div>
   <form action={designAndSave} className="mt-4 flex gap-2 text-sm">
         <label className="flex items-center gap-2">qAllow (kPa)
           <input name="qAllow" type="number" defaultValue={data.qAllow || 150} className="rounded border px-2 py-1" />

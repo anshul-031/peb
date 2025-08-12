@@ -38,16 +38,19 @@ export async function POST(req: NextRequest) {
       const bays = Number(((project?.buildingData as any)?.dimensions?.bays) ?? 3)
       frameCount = (Number.isFinite(bays) ? bays : 3) + 1
     } catch {}
-    const frameUC = Array.from({ length: frameCount }, (_, i) => Number((0.5 + 0.1 * Math.sin(i)).toFixed(2)))
-    const diagrams = { M: [0, 10, -5, 15, 0], V: [5, -5, 5, -5, 5], N: [20, 18, 15, 18, 20], deflection: [0, 5, 10, 5, 0] }
-  const updatedResults = { frameUC, diagrams, status: 'done-local', at: now } as any
+  const frameUC = Array.from({ length: frameCount }, (_, i) => Number((0.5 + 0.1 * Math.sin(i)).toFixed(2)))
+  const diagrams = { M: [0, 10, -5, 15, 0], V: [5, -5, 5, -5, 5], N: [20, 18, 15, 18, 20], deflection: [0, 5, 10, 5, 0] }
+  const maxUC = frameUC.length ? Math.max(...frameUC) : null
+  const maxUCFrame = maxUC != null ? frameUC.indexOf(maxUC) : null
+  const governingCombo = (options && typeof options.governingCombo === 'string') ? options.governingCombo : '1.2D + 1.6L (demo)'
+  const updatedResults = { frameUC, diagrams, maxUC, maxUCFrame, governingCombo, status: 'done-local', at: now } as any
     const user = await prisma.user.findUnique({ where: { email: session.user.email! }, select: { id: true } })
     await prisma.$transaction(async (tx) => {
       await tx.project.update({ where: { id: projectId }, data: { analysisResults: updatedResults } })
       const agg = await tx.projectVersion.aggregate({ where: { projectId }, _max: { versionNumber: true } })
       const nextVersion = (agg._max.versionNumber ?? 0) + 1
       const current = await tx.project.findUnique({ where: { id: projectId }, select: { buildingData: true } })
-      await tx.projectVersion.create({ data: { projectId, versionNumber: nextVersion, buildingData: current?.buildingData as any, analysisResults: updatedResults as any, createdByUserId: user?.id ?? null } })
+  await tx.projectVersion.create({ data: { projectId, versionNumber: nextVersion, buildingData: current?.buildingData as any, analysisResults: updatedResults as any, createdByUserId: user?.id ?? null, notes: 'Local analysis' } })
     })
     // Fire-and-forget log append
     try {

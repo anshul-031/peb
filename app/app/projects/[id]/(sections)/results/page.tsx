@@ -1,6 +1,7 @@
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
+import Viewer3D from '@/components/Viewer3D'
 import { ToastProvider } from '@/components/Toast'
 
 export default async function ResultsPage({ params }: { params: { id: string } }) {
@@ -17,7 +18,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
         { collaborators: { some: { user: { email: session.user.email } } } },
       ],
     },
-    select: { id: true, analysisResults: true },
+  select: { id: true, analysisResults: true, buildingData: true },
   })
 
   if (!project) {
@@ -25,6 +26,7 @@ export default async function ResultsPage({ params }: { params: { id: string } }
   }
 
   const results = (project.analysisResults as any) || null
+  const dims = (project.buildingData as any)?.dimensions || {}
 
   function Plot({ data, label, color = '#0ea5e9' }: { data: number[]; label: string; color?: string }) {
     const w = 420, h = 120, pad = 10
@@ -107,6 +109,16 @@ export default async function ResultsPage({ params }: { params: { id: string } }
               <div className="text-xs text-zinc-500">Governing combo: {govCombo}</div>
             )}
             {typeof results?.status === 'string' && <div className="text-xs text-zinc-500">Status: {results.status}</div>}
+          </div>
+          <div className="md:col-span-2">
+            <Viewer3D
+              width={Number(dims.width || 10)}
+              length={Number(dims.length || 24)}
+              eaveHeight={Number(dims.eaveHeight || 6)}
+              roofSlope={Number(dims.roofSlope || 10)}
+              bays={Number(dims.bays || 3) + 1}
+              ucByFrame={uc}
+            />
           </div>
           <div className="rounded border bg-white p-3">
             <div className="mb-1 text-xs text-zinc-500">Deflection Summary</div>

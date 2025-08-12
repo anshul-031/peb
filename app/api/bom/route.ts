@@ -11,12 +11,13 @@ export async function POST(req: NextRequest) {
     { part: 'Column', size: 'Tapered', qty: 2, length_m: 6.0 },
     { part: 'Purlin', size: 'Z200', qty: 120, length_m: 6.0 },
   ]
-  const headers = ['Part', 'Size', 'Quantity', 'Length (m)', 'Total len (m)', 'Unit mass (kg/m)', 'Est. weight (kg)']
+  const cat = (p: string) => (['Rafter','Column'].includes(p) ? 'Primary Steel' : ['Purlin','Girt'].includes(p) ? 'Secondary Steel' : p.includes('Cladding') ? 'Cladding' : p.includes('Bolt') ? 'Bolts' : 'Misc')
+  const headers = ['Category', 'Part', 'Size', 'Quantity', 'Length (m)', 'Total len (m)', 'Unit mass (kg/m)', 'Est. weight (kg)']
   const rows = items.map((i: any) => {
     const totalLen = (i.qty ?? 0) * (i.length_m ?? 0)
     const um = i.unitMass_kg_per_m ?? ''
     const kg = i.estWeight_kg ?? (typeof um === 'number' ? (totalLen * um) : '')
-    return [i.part, i.size, i.qty, i.length_m, totalLen, um, kg]
+    return [cat(i.part), i.part, i.size, i.qty, i.length_m, totalLen, um, kg]
   })
   // Totals row
   const totals = items.reduce(
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
     },
     { qty: 0, len: 0, kg: 0 }
   )
-  const csv = [headers, ...rows, ['Totals', '', totals.qty, '', totals.len, '', totals.kg]].map(r => r.join(',')).join('\n')
+  const csv = [headers, ...rows, ['Totals', '', '', totals.qty, '', totals.len, '', totals.kg]].map(r => r.join(',')).join('\n')
   return new Response(csv, {
     headers: {
       'Content-Type': 'text/csv',
@@ -56,38 +57,50 @@ export async function GET(req: NextRequest) {
   })
   if (!project) return new Response('Not found', { status: 404 })
   const dims = (project.buildingData as any)?.dimensions || {}
-  const sec = (project.buildingData as any)?.secondary || {}
+  const sec = (project.buildingData as any)?.secondary || { purlin: 1.5, girt: 1.5, pSection: 'Z200', gSection: 'Z200' }
   const W = Number(dims.width || 12)
   const L = Number(dims.length || 24)
   const H = Number(dims.eaveHeight || 6)
   const bays = Number(dims.bays || 4)
   const frameCount = bays + 1
-  const purlinSp = Number(sec.purlinSpacing || sec.purlin || 1.5)
+  const purlinSp = Number((sec as any).purlinSpacing || (sec as any).purlin || 1.5)
+  const girtSp = Number((sec as any).girtSpacing || (sec as any).girt || 1.5)
   const purlinQty = Math.max(Math.round(L / Math.max(0.5, purlinSp)), 1) * frameCount
+  const girtQty = Math.max(Math.round(H / Math.max(0.5, girtSp)), 1) * (bays + 1) * 2
+  const roofArea = W * L
+  const wallArea = (2 * L + 2 * W) * H
+  const boltsPerFrame = 24
+  const anchorPerColumn = 4
   const items = [
     { part: 'Rafter', size: 'Tapered', qty: 2 * frameCount, length_m: W },
     { part: 'Column', size: 'Tapered', qty: 2 * frameCount, length_m: H },
-    { part: 'Purlin', size: sec.pSection || 'Z200', qty: purlinQty, length_m: 6 },
+    { part: 'Purlin', size: (sec as any).pSection || 'Z200', qty: purlinQty, length_m: 6 },
+    { part: 'Girt', size: (sec as any).gSection || 'Z200', qty: girtQty, length_m: 6 },
+    { part: 'Roof Cladding', size: '0.5mm', qty: 1, length_m: Number(roofArea.toFixed(2)) },
+    { part: 'Wall Cladding', size: '0.5mm', qty: 1, length_m: Number(wallArea.toFixed(2)) },
+    { part: 'Bolt', size: 'M20', qty: frameCount * boltsPerFrame, length_m: 1 },
+    { part: 'Anchor Bolt', size: 'M20', qty: frameCount * 2 * anchorPerColumn, length_m: 1 },
   ]
-  const headers = ['Part', 'Size', 'Quantity', 'Length (m)', 'Total len (m)', 'Unit mass (kg/m)', 'Est. weight (kg)']
-  const unitMass: Record<string, number> = { 'Rafter|Tapered': 35, 'Column|Tapered': 45, 'Purlin|Z200': 16 }
+  const cat = (p: string) => (['Rafter','Column'].includes(p) ? 'Primary Steel' : ['Purlin','Girt'].includes(p) ? 'Secondary Steel' : p.includes('Cladding') ? 'Cladding' : p.includes('Bolt') ? 'Bolts' : 'Misc')
+  const headers = ['Category', 'Part', 'Size', 'Quantity', 'Length (m)', 'Total len (m)', 'Unit mass (kg/m)', 'Est. weight (kg)']
+  const unitMass: Record<string, number> = { 'Rafter|Tapered': 35, 'Column|Tapered': 45, 'Purlin|Z200': 16, 'Girt|Z200': 16, 'Roof Cladding|0.5mm': 6.8, 'Wall Cladding|0.5mm': 6.8, 'Bolt|M20': 0.24, 'Anchor Bolt|M20': 0.5 }
   const rows = items.map((i: any) => {
     const totalLen = (i.qty ?? 0) * (i.length_m ?? 0)
     const key = `${i.part}|${i.size}`
     const um = unitMass[key] ?? (i.unitMass_kg_per_m ?? '')
     const kg = typeof um === 'number' ? totalLen * um : ''
-    return [i.part, i.size, i.qty, i.length_m, totalLen, um, kg]
+    return [cat(i.part), i.part, i.size, i.qty, i.length_m, totalLen, um, kg]
   })
   const totals = rows.reduce(
     (acc: any, r: any[]) => {
-      acc.qty += Number(r[2] || 0)
-      acc.len += Number(r[4] || 0)
-      acc.kg += Number(r[6] || 0)
+      acc.qty += Number(r[3] || 0)
+      acc.len += Number(r[5] || 0)
+      acc.kg += Number(r[7] || 0)
       return acc
     },
     { qty: 0, len: 0, kg: 0 }
   )
-  const csv = [headers, ...rows, ['Totals', '', totals.qty, '', totals.len, '', totals.kg]].map(r => r.join(',')).join('\n')
+  const csv = [headers, ...rows, ['Totals', '', '', totals.qty, '', totals.len, '', totals.kg]].map(r => r.join(',')).join('\n')
   try {
     fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${encodeURIComponent(projectId)}/logs`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },

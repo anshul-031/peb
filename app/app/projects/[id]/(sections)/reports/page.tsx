@@ -36,7 +36,7 @@ export default async function ReportsPage({ params }: { params: { id: string } }
         </a>
         <a
           className="inline-flex items-center rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700"
-          href={`/api/reports/pdf?projectId=${project.id}`}
+          href={`/api/reports/pdf?projectId=${project.id}&type=bom`}
         >
           Download BOM PDF
         </a>
@@ -63,6 +63,25 @@ export default async function ReportsPage({ params }: { params: { id: string } }
           href={`/api/interop/cis2/export?projectId=${project.id}`}
         >
           Export CIS/2 (stub)
+        </a>
+        <div className="w-full" />
+        <a
+          className="inline-flex items-center rounded bg-teal-600 px-3 py-2 text-white hover:bg-teal-700"
+          href={`/api/drawings/dxf?projectId=${project.id}&sheet=anchor`}
+        >
+          DXF: Anchor Plan
+        </a>
+        <a
+          className="inline-flex items-center rounded bg-emerald-600 px-3 py-2 text-white hover:bg-emerald-700"
+          href={`/api/drawings/dxf?projectId=${project.id}&sheet=frame-elev`}
+        >
+          DXF: Frame Elevation
+        </a>
+        <a
+          className="inline-flex items-center rounded bg-cyan-600 px-3 py-2 text-white hover:bg-cyan-700"
+          href={`/api/drawings/dxf?projectId=${project.id}&sheet=roof-plan`}
+        >
+          DXF: Roof Plan
         </a>
       </div>
     </div>

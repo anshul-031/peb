@@ -62,12 +62,13 @@ export default async function BomPage({ params }: { params: { id: string } }) {
   'Bolt|M20': 0.24,
   'Anchor Bolt|M20': 0.50,
   }
+  const category = (p: string) => (['Rafter','Column'].includes(p) ? 'Primary Steel' : ['Purlin','Girt'].includes(p) ? 'Secondary Steel' : p.includes('Cladding') ? 'Cladding' : p.includes('Bolt') ? 'Bolts' : 'Misc')
   const withCalcs = items.map(it => {
     const key = `${it.part}|${it.size}`
     const um = unitMass[key] ?? 25
     const totalLen = it.qty * it.length_m
     const estKg = totalLen * um
-    return { ...it, unitMass_kg_per_m: um, totalLen_m: totalLen, estWeight_kg: estKg }
+    return { ...it, category: category(it.part), unitMass_kg_per_m: um, totalLen_m: totalLen, estWeight_kg: estKg }
   })
   const totals = withCalcs.reduce(
     (acc, it) => {
@@ -109,6 +110,7 @@ export default async function BomPage({ params }: { params: { id: string } }) {
           <table className="w-full text-sm">
             <thead className="bg-zinc-50 text-zinc-600">
               <tr>
+                <th className="px-3 py-2 text-left">Category</th>
                 <th className="px-3 py-2 text-left">Part</th>
                 <th className="px-3 py-2 text-left">Size</th>
                 <th className="px-3 py-2 text-right">Qty</th>
@@ -121,6 +123,7 @@ export default async function BomPage({ params }: { params: { id: string } }) {
             <tbody>
               {withCalcs.map((it, idx) => (
                 <tr key={idx} className="border-t">
+                  <td className="px-3 py-2 text-zinc-600">{it.category}</td>
                   <td className="px-3 py-2">{it.part}</td>
                   <td className="px-3 py-2">{it.size}</td>
                   <td className="px-3 py-2 text-right">{it.qty}</td>
@@ -131,7 +134,7 @@ export default async function BomPage({ params }: { params: { id: string } }) {
                 </tr>
               ))}
               <tr className="border-t bg-zinc-50 font-medium">
-                <td className="px-3 py-2" colSpan={2}>Totals</td>
+                <td className="px-3 py-2" colSpan={3}>Totals</td>
                 <td className="px-3 py-2 text-right">{totals.qty}</td>
                 <td className="px-3 py-2 text-right">—</td>
                 <td className="px-3 py-2 text-right">{totals.len.toFixed(1)}</td>
