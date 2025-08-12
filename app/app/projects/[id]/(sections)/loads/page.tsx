@@ -86,6 +86,8 @@ export default async function LoadsPage({ params }: { params: { id: string } }) 
       </form>
       <div className="mt-6 flex gap-3">
         <Link className="text-blue-600 underline" href={`/app/projects/${project.id}`}>Geometry</Link>
+  <Link className="text-blue-600 underline" href={("/app/projects/" + project.id + "/loads/wizard") as any}>Open Loads Wizard</Link>
+  <Link className="text-blue-600 underline" href={("/app/projects/" + project.id + "/loads/combinations") as any}>Custom Combinations</Link>
       </div>
     </div>
   )

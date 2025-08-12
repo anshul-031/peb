@@ -5,7 +5,7 @@ import IORedis from 'ioredis'
 import * as PrismaNS from '@prisma/client'
 const PrismaClient = (PrismaNS as any).PrismaClient as new (...args: any[]) => any
 
-const connection = new IORedis(process.env.REDIS_URL as string)
+const connection = new IORedis(process.env.REDIS_URL || 'redis://127.0.0.1:6379')
 
 async function run() {
   const prisma = new PrismaClient({ log: ['error', 'warn'] })

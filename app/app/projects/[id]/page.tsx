@@ -175,14 +175,43 @@ async function Collaborators({ projectId }: { projectId: string }) {
     })
     redirect(`/app/projects/${projectId}`)
   }
+  async function updateRole(userId: string, formData: FormData) {
+    'use server'
+    const role = String(formData.get('role') || 'VIEWER')
+    await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${projectId}/collaborators`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId, role })
+    })
+    redirect(`/app/projects/${projectId}`)
+  }
+  async function removeCollaborator(userId: string) {
+    'use server'
+    await fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/projects/${projectId}/collaborators`, {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ userId })
+    })
+    redirect(`/app/projects/${projectId}`)
+  }
   return (
     <div className="mt-6 border-t pt-4">
       <div className="text-sm font-medium">Collaborators</div>
-      <ul className="mt-2 space-y-1 text-xs">
-        {proj?.collaborators.map((c: { id: string; role: string; user: { email: string } }) => (
-          <li key={c.id}>{c.user.email} · {c.role}</li>
+      <div className="mt-2 space-y-2 text-xs">
+        {proj?.collaborators.map((c: { id: string; role: string; userId: string; user: { email: string } }) => (
+          <div key={c.id} className="flex items-center justify-between rounded border p-2">
+            <div>{c.user.email}</div>
+            <div className="flex items-center gap-2">
+              <form action={updateRole.bind(null, c.userId)} className="flex items-center gap-1">
+                <select name="role" defaultValue={c.role} className="rounded border px-2 py-1">
+                  <option value="VIEWER">Viewer</option>
+                  <option value="EDITOR">Editor</option>
+                </select>
+                <button className="rounded border px-2">Update</button>
+              </form>
+              <form action={removeCollaborator.bind(null, c.userId)}>
+                <button className="rounded border px-2 text-red-600">Remove</button>
+              </form>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
       <form action={addCollaborator} className="mt-2 flex gap-2 text-xs">
         <input name="email" placeholder="email" className="flex-1 rounded border px-2 py-1" />
         <select name="role" className="rounded border px-2 py-1">

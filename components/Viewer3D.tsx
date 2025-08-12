@@ -1,7 +1,7 @@
 "use client"
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls } from '@react-three/drei'
-import { useMemo } from 'react'
+import { OrbitControls, OrthographicCamera, PerspectiveCamera } from '@react-three/drei'
+import { useMemo, useState } from 'react'
 
 type Props = {
   width?: number // m
@@ -44,9 +44,19 @@ function ucToColor(uc: number): string {
 export default function Viewer3D({ width = 10, length = 24, eaveHeight = 6, roofSlope = 10, bays = 4, ucByFrame }: Props) {
   const spacing = length / (bays || 1)
   const zs = useMemo(() => Array.from({ length: bays || 1 }, (_, i) => -length / 2 + i * spacing), [bays, length, spacing])
+  const [ortho, setOrtho] = useState(false)
   return (
-    <div className="h-80 w-full overflow-hidden rounded-md border">
-      <Canvas camera={{ position: [Math.max(width, 12), Math.max(eaveHeight, 8), Math.max(length / 2, 12)], fov: 50 }}>
+    <div className="h-80 w-full overflow-hidden rounded-md border relative">
+      <div className="pointer-events-auto absolute right-2 top-2 z-10 flex gap-2">
+        <button onClick={() => setOrtho(o => !o)} className="rounded bg-white/90 px-2 py-1 text-xs shadow">{ortho ? 'Perspective' : 'Orthographic'}</button>
+        <button onClick={() => location.reload()} className="rounded bg-white/90 px-2 py-1 text-xs shadow">Reset</button>
+      </div>
+      <Canvas>
+        {ortho ? (
+          <OrthographicCamera makeDefault position={[Math.max(width, 12), Math.max(eaveHeight, 8), Math.max(length / 2, 12)]} zoom={40} />
+        ) : (
+          <PerspectiveCamera makeDefault position={[Math.max(width, 12), Math.max(eaveHeight, 8), Math.max(length / 2, 12)]} fov={50} />
+        )}
         <ambientLight intensity={0.5} />
         <directionalLight position={[5, 10, 5]} intensity={1} />
         {zs.map((z, i) => {

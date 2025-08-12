@@ -24,16 +24,20 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
 export async function POST(req: NextRequest, { params }: { params: { id: string } }) {
   const session = await getServerSession(authOptions)
   if (!session?.user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const { email, role } = await req.json()
+  const { email, userId, role } = await req.json()
   const owner = await prisma.project.findUnique({ where: { id: params.id }, include: { owner: true } })
   if (!owner) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (owner.owner.email !== session.user.email) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  const user = await prisma.user.upsert({ where: { email }, update: {}, create: { email } })
-  await prisma.projectCollaborator.upsert({
-    where: { projectId_userId: { projectId: params.id, userId: user.id } },
-    update: { role },
-    create: { projectId: params.id, userId: user.id, role },
-  })
+  if (userId) {
+    await prisma.projectCollaborator.update({ where: { projectId_userId: { projectId: params.id, userId } }, data: { role } })
+  } else {
+    const user = await prisma.user.upsert({ where: { email }, update: {}, create: { email } })
+    await prisma.projectCollaborator.upsert({
+      where: { projectId_userId: { projectId: params.id, userId: user.id } },
+      update: { role },
+      create: { projectId: params.id, userId: user.id, role },
+    })
+  }
   return NextResponse.json({ ok: true })
 }
 

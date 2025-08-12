@@ -61,7 +61,7 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: { 
   }
   const projects = await prisma.project.findMany({ where: Object.keys(where).length ? where : undefined, orderBy: { createdAt: 'desc' } })
   return (
-    <main className="mx-auto max-w-4xl px-6 py-10">
+    <main className="mx-auto max-w-6xl px-6 py-10">
       <h1 className="text-2xl font-semibold">Projects</h1>
       <form className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-4">
         <input name="q" placeholder="Search by name or code" defaultValue={q} className="rounded border px-3 py-2 w-full" />
@@ -91,17 +91,28 @@ export default async function ProjectsPage({ searchParams }: { searchParams?: { 
         </div>
       )}
 
-  <ul className="mt-8 space-y-2">
+      <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {projects.map((p: any) => (
-          <li key={p.id} className="rounded border p-3">
-            <a href={`/app/projects/${p.id}`} className="font-medium hover:underline">{p.projectName}</a>
-    <div className="text-xs text-zinc-600">{p.designCode} · {p.unitSystem} · {p.clientName || '—'}</div>
-            <form action={duplicateProject.bind(null, p.id)} className="mt-2">
-              <button className="text-xs underline">Duplicate</button>
-            </form>
-          </li>
+          <div key={p.id} className="rounded-xl border bg-white p-4 shadow-sm hover:shadow-md transition">
+            <div className="flex items-start justify-between">
+              <a href={`/app/projects/${p.id}`} className="font-medium hover:underline">{p.projectName}</a>
+              <span className={`rounded-full px-2 py-0.5 text-xs border ${p.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : p.status === 'UNDER_REVIEW' ? 'bg-amber-50 text-amber-700 border-amber-200' : 'bg-zinc-50 text-zinc-700 border-zinc-200'}`}>{p.status?.replace('_',' ') || 'IN PROGRESS'}</span>
+            </div>
+            <div className="mt-1 flex flex-wrap gap-2 text-[11px] text-zinc-600">
+              <span className="rounded bg-zinc-100 px-2 py-0.5">{p.designCode}</span>
+              <span className="rounded bg-zinc-100 px-2 py-0.5">{p.unitSystem}</span>
+              {p.clientName && <span className="rounded bg-zinc-100 px-2 py-0.5">Client: {p.clientName}</span>}
+              {(p as any).buildingType && <span className="rounded bg-zinc-100 px-2 py-0.5">{(p as any).buildingType}</span>}
+            </div>
+            <div className="mt-3 flex items-center justify-between">
+              <a href={`/app/projects/${p.id}`} className="text-sm text-blue-600 hover:underline">Open</a>
+              <form action={duplicateProject.bind(null, p.id)}>
+                <button className="text-xs underline">Duplicate</button>
+              </form>
+            </div>
+          </div>
         ))}
-      </ul>
+      </div>
     </main>
   )
 }
