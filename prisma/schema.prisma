@@ -1,0 +1,126 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  image     String?
+  passwordHash String?
+  resetToken    String?
+  resetTokenExpiry DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  projects  Project[] @relation("ProjectOwner")
+  createdVersions ProjectVersion[] @relation("ProjectVersionCreatedBy")
+  accounts  Account[]
+  sessions  Session[]
+  collaborations ProjectCollaborator[]
+}
+
+model Project {
+  id                 String   @id @default(uuid())
+  owner              User     @relation("ProjectOwner", fields: [ownerId], references: [id])
+  ownerId            String
+  projectName        String
+  buildingType       BuildingType?
+  clientName         String?
+  designerName       String?
+  location           String?
+  designCode         String?
+  unitSystem         String?
+  buildingData       Json?
+  loadData           Json?
+  analysisResults    Json?
+  connectionDesigns  Json?
+  foundationDesigns  Json?
+  status             ProjectStatus @default(IN_PROGRESS)
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  versions           ProjectVersion[]
+  collaborators      ProjectCollaborator[]
+}
+
+model ProjectVersion {
+  id               Int      @id @default(autoincrement())
+  project          Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId        String
+  versionNumber    Int
+  buildingData     Json?
+  analysisResults  Json?
+  createdByUser    User?    @relation("ProjectVersionCreatedBy", fields: [createdByUserId], references: [id])
+  createdByUserId  String?
+  createdAt        DateTime @default(now())
+  notes            String?
+}
+
+enum ProjectStatus {
+  IN_PROGRESS
+  COMPLETED
+  UNDER_REVIEW
+}
+
+enum BuildingType {
+  PEB
+  LGS
+}
+
+enum Role {
+  OWNER
+  EDITOR
+  VIEWER
+}
+
+model ProjectCollaborator {
+  id         String  @id @default(uuid())
+  project    Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId  String
+  user       User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  role       Role
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([projectId, userId])
+}
+
+// NextAuth models
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
